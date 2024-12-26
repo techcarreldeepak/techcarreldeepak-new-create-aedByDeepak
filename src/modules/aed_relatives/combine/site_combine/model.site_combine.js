@@ -194,7 +194,10 @@ const get_site_combine_model = async (
                 type: "storage",
               })),
             ].filter(Boolean),
-            pad_expiration: [...chargePakPads, ...regularPads],
+            pad_expiration: [
+              ...chargePakPads.filter(value => value !== null),
+              ...regularPads.filter(value => value !== null),
+            ],
           };
         }),
       };
