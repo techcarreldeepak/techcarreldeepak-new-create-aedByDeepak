@@ -170,6 +170,7 @@ const get_site_combine_model = async (
       );
       
       return {
+        site_id:site.account_site_info_id,
         siteName: site.account_site_name,
         aedData: siteAeds.map(aed => {
           const aedId = aed.aed_id;
