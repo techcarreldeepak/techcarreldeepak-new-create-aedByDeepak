@@ -9,6 +9,9 @@ const {
   getCombineAedController,
 } = require("../combine/get/controller.combine_get");
 const {
+  getSiteCombineAedController,
+} = require("../combine/site_combine/controller.site_combine");
+const {
   updateCombineAedController,
 } = require("../combine/update/controller.combine_update");
 const { validateRequest } = require("../../../middleware/validateRequest");
@@ -33,6 +36,17 @@ registerRoute(aedRouter, {
   schema: {},
   middlewares: [],
   handler: getCombineAedController,
+  summary: "Submit a contact message",
+  description: "This endpoint allows users to get a aed details.",
+  tags: ["ROSS AED"],
+});
+
+registerRoute(aedRouter, {
+  method: "get",
+  path: "/get_site_combine",
+  schema: {},
+  middlewares: [],
+  handler: getSiteCombineAedController,
   summary: "Submit a contact message",
   description: "This endpoint allows users to get a aed details.",
   tags: ["ROSS AED"],

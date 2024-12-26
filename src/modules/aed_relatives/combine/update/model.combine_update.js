@@ -136,6 +136,7 @@ const update_combine_model = async (data, aed_id) => {
                 pad_type: "CHARGE_PAK",
                 created_by: data.updated_by,
                 created_at: currentTimestamp,
+                spare: item.spare ? 1 : 0,
               };
               await sequelize.queryInterface.bulkInsert("pads", [pad1Data], {
                 transaction,
@@ -158,6 +159,7 @@ const update_combine_model = async (data, aed_id) => {
                 pad_type: "CHARGE_PAK",
                 created_by: data.updated_by,
                 created_at: new Date(),
+                spare: item.spare ? 1 : 0,
               };
               await sequelize.queryInterface.bulkInsert("pads", [pad2Data], {
                 transaction,
@@ -215,6 +217,7 @@ const update_combine_model = async (data, aed_id) => {
                 pad_type: "CHARGE_PAK",
                 updated_by: data.updated_by || null,
                 updated_at: currentTimestamp || null,
+                spare: item.spare ? 1 : 0,
               };
 
               if (item.charge_pak_pad_1_id) {
@@ -255,6 +258,7 @@ const update_combine_model = async (data, aed_id) => {
                 pad_type: "CHARGE_PAK",
                 updated_by: data.updated_by || null,
                 updated_at: currentTimestamp || null,
+                spare: item.spare ? 1 : 0,
               };
 
               if (item.charge_pak_pad_2_id) {
@@ -384,11 +388,13 @@ const update_combine_model = async (data, aed_id) => {
 
       // Update out_of_service_info table
       if (data.out_of_service_info) {
+        // console.log(data.out_of_service_info)
         const outServiceInfoData = data.out_of_service_info
           .filter((outService) => outService)
           .map((outService) => ({
-            replacing: outService.not_replacing ? 0 : 1,
-            replaced_serial: outService.replaced_serial || null,
+            ofs_id:outService.ofs_id,
+            replacing: outService.not_replacing ? 1 : 0,
+            replaced_serial: outService.replaced_serial_name || null,
             loaner: outService.loaner_toggle ? 1 : 0,
             loaner_serial: outService.loaner_rental_serial || null,
             date_sent_to_manufacturer:

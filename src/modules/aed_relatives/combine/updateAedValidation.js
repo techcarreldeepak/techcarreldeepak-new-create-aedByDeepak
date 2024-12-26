@@ -180,6 +180,7 @@ const updateAedValidation = Joi.object({
   out_of_service_info: Joi.array()
     .items(
       Joi.object({
+        ofs_id:Joi.number().required(),
         date_sent_to_manufacturer: Joi.string().allow(null, ""),
         loaner_rental_serial: Joi.string().allow(null, ""),
         loaner_rental_serial_name: Joi.string().allow(null, ""),

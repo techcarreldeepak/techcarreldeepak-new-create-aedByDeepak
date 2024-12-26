@@ -97,7 +97,7 @@ const create_combine_model = async (data) => {
       // Bulk insert out_of_service_info table
       const outOfServiceData = data.out_of_service_info.map((outService) => ({
         aed_id,
-        replacing: outService.not_replacing ? 0 : 1,
+        replacing: outService.not_replacing ? 1 : 0,
         replaced_serial: outService.replaced_serial || null,
         loaner: outService.loaner_toggle ? 1 : 0,
         loaner_serial: outService.loaner_rental_serial || null,
