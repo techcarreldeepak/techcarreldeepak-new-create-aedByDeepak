@@ -87,7 +87,7 @@ const get_site_combine_model = async (
       const aedIds = aedData.map((aed) => aed.aed_id);
       const relatedDataQueries = {
         batteryInfo: `
-          SELECT aed_id, bi_id, battery_expiration, battery_type, v9_expiration_date 
+          SELECT aed_id, spare, bi_id as battery_id, battery_expiration, battery_type, v9_expiration_date 
           FROM battery_information 
           WHERE aed_id IN (:aedIds) AND battery_type IS NOT NULL
         `,
@@ -119,7 +119,7 @@ const get_site_combine_model = async (
           WHERE bi.aed_id IN (:aedIds) AND bi.battery_type = 'charge_pak_info'
         `,
         padsInfo: `
-          SELECT pad_id, pad_expiration, pad_type, aed_id 
+          SELECT pad_id,spare, pad_expiration, pad_type, aed_id 
           FROM pads 
           WHERE aed_id IN (:aedIds)
         `,
@@ -162,12 +162,12 @@ const get_site_combine_model = async (
           const chargePakPads = (chargePakInfoByAed[aedId] || []).flatMap((c) => [
             {
               expiration: c.pad_1_expiration,
-              type: c.pad_1_type || "custom",
+              type: c.pad_1_type ,
               id: c.pad_1_id,
             },
             {
               expiration: c.pad_2_expiration,
-              type: c.pad_2_type || "custom",
+              type: c.pad_2_type,
               id: c.pad_2_id,
             },
           ]);
