@@ -20,17 +20,25 @@ const get_site_combine_model = async (
             OR LOWER(dm.model_name) LIKE LOWER(:search)
             OR LOWER(a.serial) LIKE LOWER(:search)
             OR LOWER(ai.account_name) LIKE LOWER(:search)
-            OR LOWER(asi.account_site_name) LIKE LOWER(:search)
+            OR LOWER(COALESCE(asi.account_site_name, 'Pending')) LIKE LOWER(:search)
          )`
       : "";
 
-    // First, get all sites for the account
+    // First, get all sites for the account, including a special entry for pending
     const sitesQuery = `
       SELECT 
         account_site_info_id,
         account_site_name
       FROM account_site_info_tbls
       WHERE account_id = :account_id
+      UNION ALL
+      SELECT 
+        0 as account_site_info_id,
+        'Pending' as account_site_name
+      WHERE EXISTS (
+        SELECT 1 FROM aed_data 
+        WHERE account_id = :account_id AND site_id = 0
+      )
       ORDER BY account_site_name
     `;
 
@@ -38,7 +46,7 @@ const get_site_combine_model = async (
       replacements: { account_id }
     });
 
-    // Get all site IDs
+    // Get all site IDs, including 0 for pending
     const siteIds = allSites.map(site => site.account_site_info_id);
 
     // Get AED data for all sites
@@ -55,7 +63,10 @@ const get_site_combine_model = async (
           ai.account_name,
           db.AED_brands AS brand_name,
           dm.model_name,
-          asi.account_site_name AS site_name,
+          CASE 
+              WHEN a.site_id = 0 THEN 'Pending'
+              ELSE asi.account_site_name 
+          END AS site_name,
           COUNT(*) OVER() AS total_count
       FROM aed_data a
       LEFT JOIN account_information_tbls ai ON a.account_id = ai.account_id
@@ -63,7 +74,7 @@ const get_site_combine_model = async (
       LEFT JOIN dropdown_aed_model_tbls dm ON a.model_id = dm.id
       LEFT JOIN account_site_info_tbls asi ON a.site_id = asi.account_site_info_id
       WHERE a.account_id = :account_id
-      AND a.site_id IN (:siteIds)
+      AND (a.site_id IN (:siteIds) OR a.site_id = 0)
       ${searchFilter}
       LIMIT :limit OFFSET :offset
     `;
@@ -80,7 +91,7 @@ const get_site_combine_model = async (
       replacements
     });
 
-    // If there are AEDs, get their related data
+    // Rest of the related data queries remain the same
     let batteryInfo = [], gatewayInfo = [], storageInfo = [], chargePakInfo = [], padsInfo = [];
     
     if (aedData.length > 0) {
@@ -119,7 +130,7 @@ const get_site_combine_model = async (
           WHERE bi.aed_id IN (:aedIds) AND bi.battery_type = 'charge_pak_info'
         `,
         padsInfo: `
-          SELECT pad_id,spare, pad_expiration, pad_type, aed_id 
+          SELECT pad_id, spare, pad_expiration, pad_type, aed_id 
           FROM pads 
           WHERE aed_id IN (:aedIds)
         `,
@@ -138,7 +149,7 @@ const get_site_combine_model = async (
       );
     }
 
-    // Group related data by AED ID
+    // Group related data by AED ID (same as before)
     const groupByAedId = (data) =>
       data.reduce((acc, item) => {
         const aed_id = item.aed_id;
@@ -151,9 +162,12 @@ const get_site_combine_model = async (
     const chargePakInfoByAed = groupByAedId(chargePakInfo);
     const padsInfoByAed = groupByAedId(padsInfo);
 
-    // Create final site data structure including sites with no AEDs
+    // Create final site data structure including sites with no AEDs and pending site
     const siteData = allSites.map(site => {
-      const siteAeds = aedData.filter(aed => aed.site_id === site.account_site_info_id);
+      const siteAeds = aedData.filter(aed => 
+        (site.account_site_info_id === 0 && aed.site_id === 0) || 
+        (aed.site_id === site.account_site_info_id)
+      );
       
       return {
         siteName: site.account_site_name,
@@ -162,7 +176,7 @@ const get_site_combine_model = async (
           const chargePakPads = (chargePakInfoByAed[aedId] || []).flatMap((c) => [
             {
               expiration: c.pad_1_expiration,
-              type: c.pad_1_type ,
+              type: c.pad_1_type,
               id: c.pad_1_id,
             },
             {
