@@ -128,8 +128,8 @@ const update_combine_model = async (data, aed_id) => {
             // Insert pad_1 if part info exists
             if (item.pad_1_part) {
               const pad1Data = {
-                pad_type_id: pad.pad_1_type_id,
-                pad_part_number: pad.pad_1_part,
+                pad_type_id: item.pad_1_type_id,
+                pad_part_number: item.pad_1_part,
                 aed_id,
                 pad_expiration: item.pad_1_expiration,
                 pad_lot: item.pad_1_lot,
@@ -150,8 +150,8 @@ const update_combine_model = async (data, aed_id) => {
             // Insert pad_2 if part info exists
             if (item.pad_2_part) {
               const pad2Data = {
-                pad_type_id: pad.pad_2_type_id,
-                pad_part_number: pad.pad_2_part,
+                pad_type_id: item.pad_2_type_id,
+                pad_part_number: item.pad_2_part,
                 aed_id,
                 pad_expiration: item.pad_2_expiration,
                 pad_lot: item.pad_2_lot,
