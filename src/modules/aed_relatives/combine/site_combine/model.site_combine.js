@@ -55,6 +55,7 @@ const get_site_combine_model = async (
           a.aed_id,
           a.account_id,
           a.site_id,
+          a.placement,
           a.brand_id,
           a.model_id,
           a.serial,
