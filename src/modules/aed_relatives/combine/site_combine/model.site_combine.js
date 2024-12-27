@@ -97,7 +97,7 @@ const get_site_combine_model = async (
       const aedIds = aedData.map((aed) => aed.aed_id);
       const relatedDataQueries = {
         batteryInfo: `
-          SELECT aed_id, spare, bi_id as battery_id, battery_expiration, battery_type, v9_expiration_date 
+          SELECT aed_id, spare, bi_id as battery_id, battery_expiration, battery_type, v9_expiration_date,install_before_date, manufactured_date
           FROM battery_information 
           WHERE aed_id IN (:aedIds) AND battery_type IS NOT NULL
         `,
