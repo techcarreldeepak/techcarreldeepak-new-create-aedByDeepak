@@ -289,7 +289,7 @@ const update_combine_model = async (data, aed_id) => {
             }
 
             if (item.pad_qty === 1) {
-              console.log({c:item.pad_qty})
+              console.log({ c: item.pad_qty })
               if (item.charge_pak_pad_1_id && item.charge_pak_pad_2_id) {
                 // Delete pad associated with charge_pak_pad_2_id
                 await sequelize.queryInterface.bulkDelete(
@@ -388,26 +388,46 @@ const update_combine_model = async (data, aed_id) => {
 
       // Update out_of_service_info table
       if (data.out_of_service_info) {
-        // console.log(data.out_of_service_info)
         const outServiceInfoData = data.out_of_service_info
           .filter((outService) => outService)
           .map((outService) => ({
-            ofs_id:outService.ofs_id,
+            ofs_id: outService.ofs_id,
             replacing: outService.not_replacing ? 1 : 0,
             replaced_serial: outService.replaced_serial_name || null,
             loaner: outService.loaner_toggle ? 1 : 0,
             loaner_serial: outService.loaner_rental_serial || null,
-            date_sent_to_manufacturer:
-              outService.date_sent_to_manufacturer || null,
+            date_sent_to_manufacturer: outService.date_sent_to_manufacturer || null,
             reason: outService.reason || null,
           }))
           .filter((item) => Object.values(item).some((val) => val !== null));
 
-        await updateOrInsertTable(
-          "out_of_service_info",
-          outServiceInfoData,
-          {}
-        );
+        for (const item of outServiceInfoData) {
+          if (!item.ofs_id) {
+            // If ofs_id is null, perform an insert
+            await sequelize.queryInterface.bulkInsert(
+              "out_of_service_info",
+              [{
+                ...item,
+                aed_id,
+                created_by: data.updated_by,
+                created_at: currentTimestamp,
+              }],
+              { transaction }
+            );
+          } else {
+            // If ofs_id exists, perform an update
+            await sequelize.queryInterface.bulkUpdate(
+              "out_of_service_info",
+              {
+                ...item,
+                updated_by: data.updated_by,
+                updated_at: currentTimestamp,
+              },
+              { ofs_id: item.ofs_id },
+              { transaction }
+            );
+          }
+        }
       }
 
       // Update battery_information table using updateOrInsertTable helper
@@ -476,7 +496,7 @@ const update_combine_model = async (data, aed_id) => {
             pad_2_lot: info.pad_2_lot,
             pad_1_type_id: info.pad_1_type_id,
             pad_2_type_id: info.pad_2_type_id,
-            pad_qty:info.pad_qty
+            pad_qty: info.pad_qty
           }))
           .filter((item) => Object.values(item).some((val) => val !== null)); // Only include items with at least one non-null value
 

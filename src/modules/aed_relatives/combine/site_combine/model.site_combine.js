@@ -102,7 +102,7 @@ const get_site_combine_model = async (
           WHERE aed_id IN (:aedIds) AND battery_type IS NOT NULL
         `,
         gatewayInfo: `
-          SELECT aed_id, expiry_date, gateway_id   
+          SELECT aed_id, expiry_date as battery_expiration, gateway_id   
           FROM gateway_info 
           WHERE aed_id IN (:aedIds)
         `,
