@@ -2,18 +2,15 @@ const { sequelize } = require("../../import");
 
 const get_site_combine_model = async (
   account_id,
-  page = 1,
-  pageSize = 10,
   searchQuery
 ) => {
   try {
     if (!account_id) {
-      return { 
-        success: false, 
-        message: "Account ID is required" 
+      return {
+        success: false,
+        message: "Account ID is required",
       };
     }
-    const offset = (page - 1) * pageSize;
     const searchFilter = searchQuery
       ? `AND (
             LOWER(db.AED_brands) LIKE LOWER(:search)
@@ -43,11 +40,11 @@ const get_site_combine_model = async (
     `;
 
     const [allSites] = await sequelize.query(sitesQuery, {
-      replacements: { account_id }
+      replacements: { account_id },
     });
 
     // Get all site IDs, including 0 for pending
-    const siteIds = allSites.map(site => site.account_site_info_id);
+    const siteIds = allSites.map((site) => site.account_site_info_id);
 
     // Get AED data for all sites
     const aedDataQuery = `
@@ -76,24 +73,25 @@ const get_site_combine_model = async (
       WHERE a.account_id = :account_id
       AND (a.site_id IN (:siteIds) OR a.site_id = 0)
       ${searchFilter}
-      LIMIT :limit OFFSET :offset
     `;
 
     const replacements = {
       account_id,
       siteIds,
-      limit: parseInt(pageSize, 10),
-      offset: parseInt(offset, 10),
-      search: searchQuery ? `%${searchQuery}%` : undefined
+      search: searchQuery ? `%${searchQuery}%` : undefined,
     };
 
     const [aedData] = await sequelize.query(aedDataQuery, {
-      replacements
+      replacements,
     });
 
     // Rest of the related data queries remain the same
-    let batteryInfo = [], gatewayInfo = [], storageInfo = [], chargePakInfo = [], padsInfo = [];
-    
+    let batteryInfo = [],
+      gatewayInfo = [],
+      storageInfo = [],
+      chargePakInfo = [],
+      padsInfo = [];
+
     if (aedData.length > 0) {
       const aedIds = aedData.map((aed) => aed.aed_id);
       const relatedDataQueries = {
@@ -119,6 +117,8 @@ const get_site_combine_model = async (
         chargePakInfo: `
           SELECT bi.aed_id, 
             pad1.pad_expiration AS pad_1_expiration, 
+            pad1.pediatric_key AS pad_1_pediatric_key, 
+            pad2.pediatric_key AS pad_2_pediatric_key,
             pad2.pad_expiration AS pad_2_expiration,
             pad1.pad_type AS pad_1_type,
             pad2.pad_type AS pad_2_type,
@@ -130,7 +130,7 @@ const get_site_combine_model = async (
           WHERE bi.aed_id IN (:aedIds) AND bi.battery_type = 'charge_pak_info'
         `,
         padsInfo: `
-          SELECT pad_id, spare, pad_expiration, pad_type, aed_id 
+          SELECT pad_id, spare, pad_expiration,pediatric_key, pad_type, aed_id 
           FROM pads 
           WHERE aed_id IN (:aedIds)
         `,
@@ -163,55 +163,79 @@ const get_site_combine_model = async (
     const padsInfoByAed = groupByAedId(padsInfo);
 
     // Create final site data structure including sites with no AEDs and pending site
-    const siteData = allSites.map(site => {
-      const siteAeds = aedData.filter(aed => 
-        (site.account_site_info_id === 0 && aed.site_id === 0) || 
-        (aed.site_id === site.account_site_info_id)
+    const siteData = allSites.map((site) => {
+      const siteAeds = aedData.filter(
+        (aed) =>
+          (site.account_site_info_id === 0 && aed.site_id === 0) ||
+          aed.site_id === site.account_site_info_id
       );
-      
+
       return {
-        site_id:site.account_site_info_id,
+        site_id: site.account_site_info_id,
         siteName: site.account_site_name,
-        aedData: siteAeds.map(aed => {
+        aedData: siteAeds.map((aed) => {
           const aedId = aed.aed_id;
-          const chargePakPads = (chargePakInfoByAed[aedId] || []).flatMap((c) => [
-            {
-              expiration: c.pad_1_expiration,
-              type: c.pad_1_type,
-              id: c.pad_1_id,
-            },
-            {
-              expiration: c.pad_2_expiration,
-              type: c.pad_2_type,
-              id: c.pad_2_id,
-            },
-          ]);
+          const chargePakPads = (chargePakInfoByAed[aedId] || []).flatMap(
+            (c) => [
+              {
+                expiration: c.pad_1_expiration,
+                type: c.pad_1_type,
+                id: c.pad_1_id,
+                pediatric_key: c.pad_1_pediatric_key,
+              },
+              {
+                expiration: c.pad_2_expiration,
+                type: c.pad_2_type,
+                id: c.pad_2_id,
+                pediatric_key: c.pad_2_pediatric_key,
+              },
+            ]
+          );
 
           const regularPads = (padsInfoByAed[aedId] || []).map((p) => ({
             expiration: p.pad_expiration,
             type: p.pad_type,
             id: p.pad_id,
+            pediatric_key: p.pediatric_key,
           }));
 
           return {
             ...aed,
             battery_expiration: [
-              ...(batteryInfoByAed[aedId] || []).map(battery => ({
+              ...(batteryInfoByAed[aedId] || []).map((battery) => ({
                 ...battery,
                 type: "battery",
               })),
-              ...(gatewayInfo.filter(g => g.aed_id === aedId) || []).map(gateway => ({
-                ...gateway,
-                type: "gateway",
-              })),
-              ...(storageInfo.filter(s => s.aed_id === aedId) || []).map(storage => ({
-                ...storage,
-                type: "storage",
-              })),
+              ...(gatewayInfo.filter((g) => g.aed_id === aedId) || []).map(
+                (gateway) => ({
+                  ...gateway,
+                  type: "gateway",
+                })
+              ),
+              ...(storageInfo.filter((s) => s.aed_id === aedId) || []).map(
+                (storage) => ({
+                  ...storage,
+                  type: "storage",
+                })
+              ),
             ].filter(Boolean),
             pad_expiration: [
-              ...chargePakPads.filter(value => value !== null),
-              ...regularPads.filter(value => value !== null),
+              ...chargePakPads.filter(
+                (value) =>
+                  value !== null &&
+                  (value.expiration !== null ||
+                    value.type !== null ||
+                    value.id !== null ||
+                    value.pediatric_key !== null)
+              ),
+              ...regularPads.filter(
+                (value) =>
+                  value !== null &&
+                  (value.expiration !== null ||
+                    value.type !== null ||
+                    value.id !== null ||
+                    value.pediatric_key !== null)
+              ),
             ],
           };
         }),
@@ -220,8 +244,6 @@ const get_site_combine_model = async (
 
     return {
       success: true,
-      page,
-      pageSize,
       count: aedData.length > 0 ? aedData[0].total_count : 0,
       data: siteData,
     };
