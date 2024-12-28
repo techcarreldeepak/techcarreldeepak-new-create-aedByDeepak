@@ -131,7 +131,7 @@ const get_site_combine_model = async (
           WHERE bi.aed_id IN (:aedIds) AND bi.battery_type = 'charge_pak_info'
         `,
         padsInfo: `
-          SELECT pad_id, spare, pad_expiration,pediatric_key, pad_type, aed_id 
+          SELECT pad_id, spare, pad_expiration,pediatric_key, pad_type, spare, aed_id 
           FROM pads 
           WHERE aed_id IN (:aedIds)
         `,
@@ -198,7 +198,31 @@ const get_site_combine_model = async (
             type: p.pad_type,
             id: p.pad_id,
             pediatric_key: p.pediatric_key,
+            spare: p.spare,
           }));
+
+          // Create a Map to store unique pad entries based on id
+          const uniquePadsMap = new Map();
+
+          // Combine and filter both pad arrays
+          [...chargePakPads, ...regularPads]
+            .filter(
+              (value) =>
+                value !== null &&
+                value.id !== null && // Ensure id exists
+                (value.expiration !== null ||
+                  value.type !== null ||
+                  value.id !== null ||
+                  value.pediatric_key !== null)
+            )
+            .forEach((pad) => {
+              // Only add/update if the id doesn't exist or is newer
+              if (!uniquePadsMap.has(pad.id) || 
+                  (pad.expiration && (!uniquePadsMap.get(pad.id).expiration || 
+                   new Date(pad.expiration) > new Date(uniquePadsMap.get(pad.id).expiration)))) {
+                uniquePadsMap.set(pad.id, pad);
+              }
+            });
 
           return {
             ...aed,
@@ -220,24 +244,7 @@ const get_site_combine_model = async (
                 })
               ),
             ].filter(Boolean),
-            pad_expiration: [
-              ...chargePakPads.filter(
-                (value) =>
-                  value !== null &&
-                  (value.expiration !== null ||
-                    value.type !== null ||
-                    value.id !== null ||
-                    value.pediatric_key !== null)
-              ),
-              ...regularPads.filter(
-                (value) =>
-                  value !== null &&
-                  (value.expiration !== null ||
-                    value.type !== null ||
-                    value.id !== null ||
-                    value.pediatric_key !== null)
-              ),
-            ],
+            pad_expiration: Array.from(uniquePadsMap.values()),
           };
         }),
       };
