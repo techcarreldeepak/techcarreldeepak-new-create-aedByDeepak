@@ -230,6 +230,7 @@ const get_site_combine_model = async (
               ...(batteryInfoByAed[aedId] || []).map((battery) => ({
                 ...battery,
                 type: "battery",
+                spare:battery.spare,
               })),
               ...(gatewayInfo.filter((g) => g.aed_id === aedId) || []).map(
                 (gateway) => ({

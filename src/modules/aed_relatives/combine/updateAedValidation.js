@@ -172,6 +172,7 @@ const updateAedValidation = Joi.object({
   rms_info: Joi.array()
     .items(
       Joi.object({
+        rms_id : Joi.number().required(),
         rms_brand: Joi.string().allow(null, ""),
         rms_name: Joi.string().allow(null, ""),
       })
@@ -180,13 +181,13 @@ const updateAedValidation = Joi.object({
   out_of_service_info: Joi.array()
     .items(
       Joi.object({
-        ofs_id: Joi.number().allow(null,""),
+        ofs_id: Joi.number().required(),
         date_sent_to_manufacturer: Joi.string().allow(null, ""),
         loaner_rental_serial: Joi.string().allow(null, ""),
         loaner_rental_serial_name: Joi.string().allow(null, ""),
         reason: Joi.string().allow(null, ""),
-        not_replacing: Joi.boolean().required(),
-        loaner_toggle: Joi.boolean().required(),
+        not_replacing: Joi.boolean().allow(null, ""),
+        loaner_toggle: Joi.boolean().allow(null, ""),
         replaced_serial: Joi.string().allow(null, ""),
         replaced_serial_name: Joi.string().allow(null, ""),
       })
@@ -206,6 +207,7 @@ const updateAedValidation = Joi.object({
   gateway_info: Joi.array()
     .items(
       Joi.object({
+        gateway_id: Joi.number().required(),
         installed: Joi.number().allow(null, ""),
         connected: Joi.number().allow(null, ""),
         gateway_serial: Joi.string().allow(null, ""),
@@ -219,6 +221,7 @@ const updateAedValidation = Joi.object({
   builtin_RMS_info: Joi.array()
     .items(
       Joi.object({
+        rms_id : Joi.number().required(),
         connected: Joi.boolean().required(),
         mac_address: Joi.string().allow(null, ""),
       })

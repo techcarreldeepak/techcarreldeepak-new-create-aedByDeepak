@@ -551,15 +551,44 @@ const update_combine_model = async (data, aed_id) => {
         const gatewayInfoData = data.gateway_info
           .filter((gateway) => gateway)
           .map((gateway) => ({
+            expiry_date:gateway.expiry_date|| null,
             installed: gateway.installed || null,
             connected: gateway.connected || null,
             gateway_serial: gateway.gateway_serial || null,
             gateway_mac_address: gateway.gateway_mac_address || null,
             battery_install_date: gateway.battery_install_date || null,
+            gateway_id: gateway.gateway_id || null  // Add this line to capture gateway_id
           }))
           .filter((item) => Object.values(item).some((val) => val !== null));
 
-        await updateOrInsertTable("gateway_info", gatewayInfoData, {});
+        for (const gateway of gatewayInfoData) {
+          const { gateway_id, ...gatewayData } = gateway;
+          if (!gateway_id) {
+            // If gateway_id is null, perform an insert
+            await sequelize.queryInterface.bulkInsert(
+              "gateway_info",
+              [{
+                ...gatewayData,
+                aed_id,
+                created_by: data.updated_by,
+                created_at: currentTimestamp,
+              }],
+              { transaction }
+            );
+          } else {
+            // If gateway_id exists, perform an update
+            await sequelize.queryInterface.bulkUpdate(
+              "gateway_info",
+              {
+                ...gatewayData,
+                updated_by: data.updated_by,
+                updated_at: currentTimestamp,
+              },
+              { gateway_id: gateway_id },
+              { transaction }
+            );
+          }
+        }
       }
 
       // Update storage_information table
@@ -570,8 +599,8 @@ const update_combine_model = async (data, aed_id) => {
             storage_type_id: storage.storage_type || null,
             alarmed: storage.alarmed ? 1 : 0,
             alarm_status: storage.alarm_status ? 1 : 0,
-            installed_date: storage.installed_date || null,
-            v9_expiration_date: storage.v9_expiration_date || null,
+            installed_date: storage.v9_Installed_Date || null,
+            v9_expiration_date: storage.expiry_date || null,
           }))
           .filter((item) => Object.values(item).some((val) => val !== null));
 
